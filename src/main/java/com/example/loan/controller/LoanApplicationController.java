@@ -51,4 +51,12 @@ public class LoanApplicationController {
         loanService.rejectApplication(id, rejection.getReason());
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{id}/regenerate-schedule")
+    @Operation(summary = "Regenerate payment schedule with new parameters (must be IN_REVIEW)")
+    public ResponseEntity<LoanApplicationDetailsDTO> regenerateSchedule(
+            @PathVariable UUID id,
+            @Valid @RequestBody RegenerateScheduleRequestDTO request) {
+        return ResponseEntity.ok(loanService.regenerateSchedule(id, request));
+    }
 }

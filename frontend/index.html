@@ -8,32 +8,49 @@
         input, button { display: block; margin: 8px 0; padding: 8px; width: 100%; box-sizing: border-box; }
         button { background: #007bff; color: white; border: none; cursor: pointer; }
         button:hover { background: #0056b3; }
-        #result { margin-top: 20px; background: #f4f4f4; padding: 16px; white-space: pre-wrap; }
+        #result { margin-top: 20px; background: #f4f4f4; padding: 16px; white-space: pre-wrap; word-wrap: break-word; }
         .action-btn { width: auto; display: inline-block; margin: 4px; }
+        .section-box { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 5px; }
     </style>
 </head>
 <body>
 <h1>Laenutaotluse süsteem</h1>
 
-<h2>Esita taotlus</h2>
-<input id="firstName" placeholder="Eesnimi" />
-<input id="lastName" placeholder="Perenimi" />
-<input id="personalCode" placeholder="Isikukood (nt 38001011234)" />
-<input id="loanAmount" placeholder="Laenusumma (min 5000)" type="number" />
-<input id="loanPeriodMonths" placeholder="Periood kuudes (6-360)" type="number" />
-<input id="baseInterestRate" placeholder="Baasintressimäär (nt 1.234)" type="number" step="0.001" />
-<input id="interestMargin" placeholder="Intressimarginaal (nt 1.001)" type="number" step="0.001" />
-<button onclick="submitApplication()">Esita taotlus</button>
+<div class="section-box">
+    <h2>Esita taotlus</h2>
+    <input id="firstName" placeholder="Eesnimi" />
+    <input id="lastName" placeholder="Perenimi" />
+    <input id="personalCode" placeholder="Isikukood (nt 38001011234)" />
+    <input id="loanAmount" placeholder="Laenusumma (min 5000)" type="number" />
+    <input id="loanPeriodMonths" placeholder="Periood kuudes (6-360)" type="number" />
+    <input id="baseInterestRate" placeholder="Baasintressimäär (nt 1.234)" type="number" step="0.001" />
+    <input id="interestMargin" placeholder="Intressimarginaal (nt 1.001)" type="number" step="0.001" />
+    <button onclick="submitApplication()">Esita taotlus</button>
+</div>
 
-<h2>Vaata taotlust</h2>
-<input id="lookupId" placeholder="Taotluse ID (UUID)" />
-<button onclick="getApplication()">Otsi</button>
+<div class="section-box">
+    <h2>Vaata taotlust</h2>
+    <input id="lookupId" placeholder="Taotluse ID (UUID)" />
+    <button onclick="getApplication()">Otsi</button>
+</div>
 
-<h2>Kinnita / Lükka tagasi</h2>
-<input id="actionId" placeholder="Taotluse ID (UUID)" />
-<button class="action-btn" onclick="approveApplication()">Kinnita</button>
-<button class="action-btn" style="background:#dc3545" onclick="rejectApplication()">Lükka tagasi</button>
-<input id="rejectionReason" placeholder="Tagasilükkamise põhjus (nt OTHER)" />
+<div class="section-box">
+    <h2>Uuenda maksegraafikut</h2>
+    <input id="regenId" placeholder="Taotluse ID (UUID)" />
+    <input id="regenLoanAmount" placeholder="Uus laenusumma" type="number" />
+    <input id="regenLoanPeriodMonths" placeholder="Uus periood kuudes" type="number" />
+    <input id="regenBaseInterestRate" placeholder="Uus baasintress" type="number" step="0.001" />
+    <input id="regenInterestMargin" placeholder="Uus marginaal" type="number" step="0.001" />
+    <button style="background:#28a745" onclick="regenerateSchedule()">Uuenda graafikut</button>
+</div>
+
+<div class="section-box">
+    <h2>Kinnita / Lükka tagasi</h2>
+    <input id="actionId" placeholder="Taotluse ID (UUID)" />
+    <button class="action-btn" onclick="approveApplication()">Kinnita</button>
+    <button class="action-btn" style="background:#dc3545" onclick="rejectApplication()">Lükka tagasi</button>
+    <input id="rejectionReason" placeholder="Tagasilükkamise põhjus (nt OTHER)" />
+</div>
 
 <div id="result">Tulemused ilmuvad siia...</div>
 
@@ -60,6 +77,29 @@
     async function getApplication() {
         const id = document.getElementById('lookupId').value;
         const res = await fetch(`${API}/${id}`);
+        show(await res.json());
+    }
+
+    // UUS FUNKTSIOON: Graafiku uuendamine
+    async function regenerateSchedule() {
+        const id = document.getElementById('regenId').value;
+        const res = await fetch(`${API}/${id}/regenerate-schedule`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                loanAmount: parseFloat(document.getElementById('regenLoanAmount').value),
+                loanPeriodMonths: parseInt(document.getElementById('regenLoanPeriodMonths').value),
+                baseInterestRate: parseFloat(document.getElementById('regenBaseInterestRate').value),
+                interestMargin: parseFloat(document.getElementById('regenInterestMargin').value),
+            })
+        });
+
+        // Handle potential errors (like trying to regenerate when status is not IN_REVIEW)
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: res.statusText }));
+            show({ status: res.status, ...err });
+            return;
+        }
         show(await res.json());
     }
 

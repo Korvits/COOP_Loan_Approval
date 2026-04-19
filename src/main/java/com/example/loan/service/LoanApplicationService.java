@@ -84,6 +84,26 @@ public class LoanApplicationService {
         repository.save(app);
     }
 
+    @Transactional
+    public LoanApplicationDetailsDTO regenerateSchedule(UUID id, RegenerateScheduleRequestDTO request) {
+        LoanApplication app = findOrThrow(id);
+        if (app.getStatus() != ApplicationStatus.IN_REVIEW) {
+            throw new BusinessException("Schedule can only be regenerated when IN_REVIEW. Current status: " + app.getStatus());
+        }
+
+        app.setLoanAmount(request.getLoanAmount());
+        app.setLoanPeriodMonths(request.getLoanPeriodMonths());
+        app.setBaseInterestRate(request.getBaseInterestRate());
+        app.setInterestMargin(request.getInterestMargin());
+
+        app.getPaymentSchedule().clear();
+        List<PaymentScheduleEntry> newSchedule = processService.generateAnnuitySchedule(app);
+        app.getPaymentSchedule().addAll(newSchedule);
+
+        LoanApplication saved = repository.save(app);
+        return toDetailsDTO(saved);
+    }
+
     private LoanApplication findOrThrow(UUID id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Loan application not found: " + id));
