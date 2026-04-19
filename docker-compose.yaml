@@ -30,5 +30,12 @@ services:
       SPRING_DATASOURCE_USERNAME: loanuser
       SPRING_DATASOURCE_PASSWORD: loanpass
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+
 volumes:
   pgdata:

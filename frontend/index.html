@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <title>Loan Approval</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+        input, button { display: block; margin: 8px 0; padding: 8px; width: 100%; box-sizing: border-box; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #result { margin-top: 20px; background: #f4f4f4; padding: 16px; white-space: pre-wrap; }
+        .action-btn { width: auto; display: inline-block; margin: 4px; }
+    </style>
+</head>
+<body>
+<h1>Laenutaotluse süsteem</h1>
+
+<h2>Esita taotlus</h2>
+<input id="firstName" placeholder="Eesnimi" />
+<input id="lastName" placeholder="Perenimi" />
+<input id="personalCode" placeholder="Isikukood (nt 38001011234)" />
+<input id="loanAmount" placeholder="Laenusumma (min 5000)" type="number" />
+<input id="loanPeriodMonths" placeholder="Periood kuudes (6-360)" type="number" />
+<input id="baseInterestRate" placeholder="Baasintressimäär (nt 1.234)" type="number" step="0.001" />
+<input id="interestMargin" placeholder="Intressimarginaal (nt 1.001)" type="number" step="0.001" />
+<button onclick="submitApplication()">Esita taotlus</button>
+
+<h2>Vaata taotlust</h2>
+<input id="lookupId" placeholder="Taotluse ID (UUID)" />
+<button onclick="getApplication()">Otsi</button>
+
+<h2>Kinnita / Lükka tagasi</h2>
+<input id="actionId" placeholder="Taotluse ID (UUID)" />
+<button class="action-btn" onclick="approveApplication()">Kinnita</button>
+<button class="action-btn" style="background:#dc3545" onclick="rejectApplication()">Lükka tagasi</button>
+<input id="rejectionReason" placeholder="Tagasilükkamise põhjus (nt OTHER)" />
+
+<div id="result">Tulemused ilmuvad siia...</div>
+
+<script>
+    const API = '/api/v1/loan-applications';
+
+    async function submitApplication() {
+        const res = await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                personalCode: document.getElementById('personalCode').value,
+                loanAmount: parseFloat(document.getElementById('loanAmount').value),
+                loanPeriodMonths: parseInt(document.getElementById('loanPeriodMonths').value),
+                baseInterestRate: parseFloat(document.getElementById('baseInterestRate').value),
+                interestMargin: parseFloat(document.getElementById('interestMargin').value),
+            })
+        });
+        show(await res.json());
+    }
+
+    async function getApplication() {
+        const id = document.getElementById('lookupId').value;
+        const res = await fetch(`${API}/${id}`);
+        show(await res.json());
+    }
+
+    async function approveApplication() {
+        const id = document.getElementById('actionId').value;
+        const res = await fetch(`${API}/${id}/approve`, { method: 'POST' });
+        show(res.status === 204 ? { message: 'Kinnitatud!' } : await res.json());
+    }
+
+    async function rejectApplication() {
+        const id = document.getElementById('actionId').value;
+        const reason = document.getElementById('rejectionReason').value;
+        const res = await fetch(`${API}/${id}/reject`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason })
+        });
+        show(res.status === 204 ? { message: 'Tagasi lükatud!' } : await res.json());
+    }
+
+    function show(data) {
+        document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+    }
+</script>
+</body>
+</html>
